@@ -1,11 +1,11 @@
 
 module jk_ff (
-    input  logic clk,
-    input  logic rst_n,   // active-LOW reset
-    input  logic j,
-    input  logic k,
-    output logic q,
-    output logic q_bar
+    input   clk,
+    input   rst_n,   // active-LOW reset
+    input   j,
+    input   k,
+    output reg q,
+    output  q_bar
 );
 
 parameter HOLD    = 2'b00;
