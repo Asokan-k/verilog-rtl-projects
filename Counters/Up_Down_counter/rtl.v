@@ -2,14 +2,16 @@ module counter(
   input clk,
   input rst,
   input up_down,
-  output reg q
-  };
+  output reg [3:0] q
+);
+
   always @(posedge clk or posedge rst) begin
-    if(rst)
-      q <= 1'b0;
-    else if(up_down)
-      q <= q + 1'b1;    // up_count
+    if (rst)
+      q <= 4'b0000;
+    else if (up_down)
+      q <= q + 1'b1;   // up count
     else
-      q <= q - 1'b1;   // down_count
+      q <= q - 1'b1;   // down count
   end
-  endmodule
+
+endmodule
