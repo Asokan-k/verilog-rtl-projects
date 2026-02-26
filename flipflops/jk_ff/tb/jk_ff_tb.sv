@@ -1,77 +1,89 @@
-module jk_tb;
+class trans_jk;
+   rand bit rst;
+   rand bit j;
+   rand bit k;
+   bit q;
 
-  logic clk;
-  logic rst_n;
-  logic j;
-  logic k;
-  logic q;
-  logic q_bar;
-
-  // DUT
-  jk_ff DUT (
-    .clk   (clk),
-    .rst_n (rst_n),
-    .j     (j),
-    .k     (k),
-    .q     (q),
-    .q_bar (q_bar)
-  );
-
-  always #10 clk = ~clk;
+   constraint c1 {
+      rst dist {0 := 75, 1 := 25};
+   }
   
-  // Transaction class
- 
-  class trans;
-    rand bit rst_n;
-    rand bit j;
-    rand bit k;
+endclass
 
-    // Reset active rarely
-    constraint c_rst {
-      rst_n dist {1 := 90, 0 := 10};
-    }
 
-   
-    constraint c_jk {
-      {j, k} inside {2'b00, 2'b01, 2'b10, 2'b11};
-    }
-  endclass
+module jk_tb();
 
-  trans t;
-  
-  initial begin
-    clk   = 0;
-    rst_n = 0;
-    j     = 0;
-    k     = 0;
+logic clk, rst, j, k;
+logic q;
 
-    t = new();
+jk_ff DUT(
+    .clk(clk),
+    .rst(rst),
+    .j(j),
+    .k(k),
+    .q(q)
+);
 
-    // Apply initial reset for 2 cycles
-    repeat (2) @(posedge clk);
-    rst_n = 1;
+// clock generation
+always #10 clk = ~clk;
 
-    // Random stimulus
-    repeat (20) begin
-      assert(t.randomize())
-        else $fatal("Randomization failed");
+trans_jk jk_h;
 
-      // Drive inputs BEFORE clock edge
-      rst_n = t.rst_n;
-      j     = t.j;
-      k     = t.k;
+initial begin
+    clk = 0;
+    jk_h = new();
 
-      // Sample at clock edge
-      @(posedge clk);
-      #1;
+    repeat (10) begin
+      assert(jk_h.randomize());
+        
+        rst = jk_h.rst;
+        j   = jk_h.j;
+        k   = jk_h.k;
 
-      $display("T=%0t | rst_n=%b | J=%b K=%b | Q=%b Q_bar=%b",
-               $time, rst_n, j, k, q, q_bar);
+        #10;
     end
 
-    $display("---- RANDOM TEST COMPLETED ----");
-    $finish;
-  end
+     $finish;
+end
 
+// Assertions
+  
+// SET assertion
+property set_jk;
+   @(posedge clk) disable iff(rst)
+  (j == 1 && k == 0) |=> (q == 1);
+endproperty
+
+  assert property(set_jk)
+else $error("SET failed");
+
+
+// RESET assertion
+property reset_jk;
+   @(posedge clk) disable iff(rst)
+  (j == 0 && k == 1) |=> (q == 0);
+endproperty
+
+assert property(reset_jk)
+else $error("RESET failed");
+
+
+// HOLD assertion
+property hold_jk;
+   @(posedge clk) disable iff(rst)
+   (j == 0 && k == 0) |=> (q == $past(q));
+endproperty
+
+assert property(hold_jk)
+else $error("HOLD failed");
+
+
+// TOGGLE condition assertion
+property toggle_jk;
+   @(posedge clk) disable iff(rst)
+      (j==1 && k==1) |=> (q == ~$past(q));
+endproperty
+
+assert property(toggle_jk)
+else $error("JK TOGGLE failed at time %0t", $time);
 endmodule
-
